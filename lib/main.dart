@@ -14,6 +14,7 @@ import 'models/player_model.dart';
 import 'services/stumps_import_service.dart';
 import 'match_details_page.dart';
 import 'package:file_picker/file_picker.dart';
+import 'services/stumps_file_picker.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -6147,6 +6148,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _pickAndImportStumpsPdf() async {
+    print('STUMPS IMPORT BUTTON CLICKED');
+
     if (!isAdmin) {
       return;
     }
@@ -6158,26 +6161,42 @@ class _DashboardPageState extends State<DashboardPage> {
     });
 
     try {
-      final pickedFile = await FilePicker.pickFile(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
-      );
+      print('BEFORE FILE PICKER');
+
+      final pickedFile = await pickStumpsPdf();
+
+      print('AFTER FILE PICKER: ${pickedFile != null}');
 
       if (pickedFile == null) {
+        print('FILE PICKER RETURNED NULL');
+
         if (!mounted) return;
+
         setState(() {
           isImportingStumps = false;
+          stumpsImportMessage = 'No PDF was selected.';
+          stumpsImportSuccess = false;
         });
+
         return;
       }
 
+      print('PDF SELECTED: ${pickedFile.name}');
+
       final bytes = await pickedFile.readAsBytes();
+
+      print('PDF BYTES READ: ${bytes.length}');
 
       if (bytes.isEmpty) {
         throw StateError('The selected PDF could not be read.');
       }
 
-      final importResult = await StumpsImportService().importPdf(bytes);
+      print('STARTING STUMPS IMPORT SERVICE');
+
+      final importResult =
+          await StumpsImportService().importPdf(bytes);
+
+      print('STUMPS IMPORT SERVICE COMPLETED');
 
       if (!mounted) return;
 
@@ -6197,7 +6216,14 @@ class _DashboardPageState extends State<DashboardPage> {
         stumpsImportMessage =
             'Match imported successfully. STUMPS Match ID: ${importResult.match.stumpsMatchId}. Performance records saved: ${importResult.performanceCount}.';
       });
-    } catch (e) {
+
+      await _loadTeams();
+      await _loadMatches();
+      await _loadPlayers();
+    } catch (e, stackTrace) {
+      print('STUMPS IMPORT ERROR: $e');
+      print(stackTrace);
+
       if (!mounted) return;
 
       setState(() {

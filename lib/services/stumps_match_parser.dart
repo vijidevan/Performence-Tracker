@@ -284,17 +284,56 @@ class StumpsMatchParser {
     final parts = <String>[];
 
     for (int i = scoreIndex - 1; i >= 0; i--) {
-      final value = lines[i];
+      final value = lines[i].trim();
 
       if (_isHeader(value)) {
         break;
       }
 
-      if (_isScoreRelatedToken(value)) {
+      if (_isLikelyMetadata(value)) {
         break;
       }
 
-      if (_isLikelyMetadata(value)) {
+      /*
+       * STUMPS can extract team names in two different ways.
+       *
+       * Example:
+       *   SMASHERS 11
+       *   120-5
+       *   in
+       *   15.3
+       *   overs
+       *
+       * In the PDF text this can become:
+       *   SMASHERS
+       *   11
+       *   120-5
+       *
+       * The previous parser treated the numeric "11" as a score
+       * token and stopped before reaching "SMASHERS". That caused
+       * team1/team2 to be empty for reports containing a numeric
+       * suffix in the team name.
+       *
+       * A standalone numeric token immediately before a score is
+       * therefore allowed as part of the team name when the token
+       * before it is a plausible team-name token.
+       */
+      if (RegExp(r'^\d+$').hasMatch(value)) {
+        if (i > 0 &&
+            !_isHeader(lines[i - 1]) &&
+            !_isLikelyMetadata(lines[i - 1]) &&
+            RegExp(r'[A-Za-z]').hasMatch(lines[i - 1])) {
+          parts.insert(0, value);
+          continue;
+        }
+
+        break;
+      }
+
+      if (RegExp(r'^\d+(?:\.\d+)?$').hasMatch(value) ||
+          RegExp(r'^\d+\s*[-/]\s*\d+$').hasMatch(value) ||
+          value.toLowerCase() == 'in' ||
+          value.toLowerCase() == 'overs') {
         break;
       }
 
