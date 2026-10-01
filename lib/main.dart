@@ -836,26 +836,55 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     final selectedItem = navigationItems[selectedIndex];
 
-    return Scaffold(
-      body: Row(
-        children: [
-          _buildSidebar(),
-          Expanded(
-            child: Column(
-              children: [
-                _buildTopBar(selectedItem.title),
-                Expanded(
-                  child: _buildPageContent(),
-                ),
-              ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 800;
+
+        if (isMobile) {
+          return Scaffold(
+            drawer: Drawer(
+              width: constraints.maxWidth < 360
+                  ? constraints.maxWidth * 0.82
+                  : 290,
+              child: SafeArea(
+                child: _buildSidebar(isDrawer: true),
+              ),
             ),
+            body: SafeArea(
+              child: Column(
+                children: [
+                  _buildTopBar(selectedItem.title, isMobile: true),
+                  Expanded(
+                    child: _buildPageContent(),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Scaffold(
+          body: Row(
+            children: [
+              _buildSidebar(),
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildTopBar(selectedItem.title),
+                    Expanded(
+                      child: _buildPageContent(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildSidebar() {
+  Widget _buildSidebar({bool isDrawer = false}) {
     return Container(
       width: 250,
       color: const Color(0xFF0D1B2A),
@@ -925,6 +954,10 @@ class _DashboardPageState extends State<DashboardPage> {
                       setState(() {
                         selectedIndex = index;
                       });
+
+                      if (isDrawer && Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
@@ -971,47 +1004,85 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
           Container(
-            margin: const EdgeInsets.all(12),
+            margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: const Color(0xFF172A3A),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Row(
+            child: Column(
               children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Color(0xFF1565C0),
-                  child: Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 19,
-                  ),
+                const Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Color(0xFF1565C0),
+                      child: Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 19,
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Administrator',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Team Performance',
+                            style: TextStyle(
+                              color: Color(0xFF8798A8),
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Administrator',
-                        style: TextStyle(
-                          color: Colors.white,
+                if (isDrawer) ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 40,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        await FirebaseAuth.instance.signOut();
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).pop();
+                      },
+                      icon: const Icon(
+                        Icons.logout_rounded,
+                        size: 17,
+                      ),
+                      label: const Text('Sign Out'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFE3F2FD),
+                        side: const BorderSide(
+                          color: Color(0xFF35536C),
+                        ),
+                        textStyle: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Team Performance',
-                        style: TextStyle(
-                          color: Color(0xFF8798A8),
-                          fontSize: 10,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -1020,7 +1091,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildTopBar(String pageTitle) {
+  Widget _buildTopBar(String pageTitle, {bool isMobile = false}) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 700;
@@ -1038,6 +1109,25 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           child: Row(
             children: [
+              if (isMobile)
+                Builder(
+                  builder: (context) => IconButton(
+                    tooltip: 'Open menu',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    onPressed: () {
+                      Scaffold.of(context).openDrawer();
+                    },
+                    icon: const Icon(
+                      Icons.menu_rounded,
+                      color: Color(0xFF536170),
+                    ),
+                  ),
+                ),
+              if (isMobile) const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   pageTitle,
@@ -5055,32 +5145,50 @@ class _DashboardPageState extends State<DashboardPage> {
             },
           ),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _matchSummaryCard(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 650;
+
+              final cards = [
+                _matchSummaryCard(
                   icon: Icons.sports_cricket_rounded,
                   title: 'Total Matches',
                   value: '${filteredMatches.length}',
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _matchSummaryCard(
+                _matchSummaryCard(
                   icon: Icons.check_circle_outline_rounded,
                   title: 'Completed',
                   value: '${filteredMatches.where((match) => match.completed).length}',
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _matchSummaryCard(
+                _matchSummaryCard(
                   icon: Icons.picture_as_pdf_rounded,
                   title: 'STUMPS Imports',
                   value: '${filteredMatches.where((match) => match.stumpsMatchId.isNotEmpty).length}',
                 ),
-              ),
-            ],
+              ];
+
+              if (compact) {
+                return Column(
+                  children: [
+                    cards[0],
+                    const SizedBox(height: 10),
+                    cards[1],
+                    const SizedBox(height: 10),
+                    cards[2],
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: cards[0]),
+                  const SizedBox(width: 16),
+                  Expanded(child: cards[1]),
+                  const SizedBox(width: 16),
+                  Expanded(child: cards[2]),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 24),
           if (filteredMatches.isEmpty)
@@ -5274,61 +5382,111 @@ class _DashboardPageState extends State<DashboardPage> {
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 700;
 
-          final teamsBlock = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
+          final teamsBlock = compact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
                       team1Name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF263238),
                       ),
                     ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      'vs',
+                    const SizedBox(height: 4),
+                    const Text(
+                      'VS',
                       style: TextStyle(
                         color: Color(0xFF9AA5B1),
-                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ),
-                  Expanded(
-                    child: Text(
+                    const SizedBox(height: 4),
+                    Text(
                       team2Name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF263238),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                match.result.isNotEmpty
-                    ? match.result
-                    : 'Result not available',
-                style: const TextStyle(
-                  color: Color(0xFF2E7D32),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          );
+                    const SizedBox(height: 10),
+                    Text(
+                      match.result.isNotEmpty
+                          ? match.result
+                          : 'Result not available',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF2E7D32),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            team1Name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF263238),
+                            ),
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'vs',
+                            style: TextStyle(
+                              color: Color(0xFF9AA5B1),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            team2Name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF263238),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      match.result.isNotEmpty
+                          ? match.result
+                          : 'Result not available',
+                      style: const TextStyle(
+                        color: Color(0xFF2E7D32),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                );
 
           final metadata = Wrap(
             spacing: 8,
@@ -5363,7 +5521,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 const SizedBox(height: 18),
                 metadata,
                 const SizedBox(height: 16),
-                _matchDetailsRow(match),
+                _matchDetailsRow(match, compact: true),
               ],
             );
           }
@@ -5383,7 +5541,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ],
               ),
               const SizedBox(height: 18),
-              _matchDetailsRow(match),
+              _matchDetailsRow(match, compact: false),
             ],
           );
         },
@@ -5391,7 +5549,62 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _matchDetailsRow(MatchModel match) {
+  Widget _matchDetailsRow(
+    MatchModel match, {
+    bool compact = false,
+  }) {
+    final detailItems = [
+      _detailText(
+        'STUMPS ID',
+        match.stumpsMatchId,
+        width: compact ? double.infinity : 180,
+      ),
+      _detailText(
+        'Organiser',
+        match.organiser,
+        width: compact ? double.infinity : 180,
+      ),
+      _detailText(
+        'Scorer',
+        match.scorer,
+        width: compact ? double.infinity : 180,
+      ),
+      _detailText(
+        'Toss',
+        '${_teamName(match.tossWinnerTeamId)} • ${match.tossDecision}',
+        width: compact ? double.infinity : 180,
+      ),
+    ];
+
+    final detailsButton = OutlinedButton.icon(
+      onPressed: () => _openMatchDetails(match),
+      icon: const Icon(
+        Icons.visibility_rounded,
+        size: 16,
+      ),
+      label: const Text('View Match Details'),
+      style: OutlinedButton.styleFrom(
+        minimumSize: compact
+            ? const Size.fromHeight(44)
+            : const Size(0, 40),
+        foregroundColor: const Color(0xFF1565C0),
+        side: const BorderSide(
+          color: Color(0xFFB9D3EE),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 10,
+        ),
+        textStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+
     return Container(
       padding: const EdgeInsets.only(top: 14),
       decoration: const BoxDecoration(
@@ -5401,51 +5614,42 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ),
       ),
-      child: Wrap(
-        spacing: 24,
-        runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          _detailText('STUMPS ID', match.stumpsMatchId),
-          _detailText('Organiser', match.organiser),
-          _detailText('Scorer', match.scorer),
-          _detailText(
-            'Toss',
-            '${_teamName(match.tossWinnerTeamId)} • ${match.tossDecision}',
-          ),
-          OutlinedButton.icon(
-            onPressed: () => _openMatchDetails(match),
-            icon: const Icon(
-              Icons.visibility_rounded,
-              size: 16,
+      child: compact
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ...detailItems.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: item,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                SizedBox(
+                  width: double.infinity,
+                  child: detailsButton,
+                ),
+              ],
+            )
+          : Wrap(
+              spacing: 24,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                ...detailItems,
+                detailsButton,
+              ],
             ),
-            label: const Text('View Details'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF1565C0),
-              side: const BorderSide(
-                color: Color(0xFFB9D3EE),
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
-              textStyle: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _detailText(String label, String value) {
+  Widget _detailText(
+    String label,
+    String value, {
+    double width = 180,
+  }) {
     return SizedBox(
-      width: 180,
+      width: width,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
