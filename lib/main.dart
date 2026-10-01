@@ -836,47 +836,26 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     final selectedItem = navigationItems[selectedIndex];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 800;
-
-        return Scaffold(
-          drawer: isMobile
-              ? Drawer(
-                  width: 290,
-                  child: _buildSidebar(inDrawer: true),
-                )
-              : null,
-          body: isMobile
-              ? Column(
-                  children: [
-                    _buildTopBar(selectedItem.title, isMobile: true),
-                    Expanded(
-                      child: _buildPageContent(),
-                    ),
-                  ],
-                )
-              : Row(
-                  children: [
-                    _buildSidebar(),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          _buildTopBar(selectedItem.title),
-                          Expanded(
-                            child: _buildPageContent(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+    return Scaffold(
+      body: Row(
+        children: [
+          _buildSidebar(),
+          Expanded(
+            child: Column(
+              children: [
+                _buildTopBar(selectedItem.title),
+                Expanded(
+                  child: _buildPageContent(),
                 ),
-        );
-      },
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildSidebar({bool inDrawer = false}) {
+  Widget _buildSidebar() {
     return Container(
       width: 250,
       color: const Color(0xFF0D1B2A),
@@ -946,10 +925,6 @@ class _DashboardPageState extends State<DashboardPage> {
                       setState(() {
                         selectedIndex = index;
                       });
-
-                      if (inDrawer) {
-                        Navigator.of(context).pop();
-                      }
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
@@ -1045,13 +1020,10 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildTopBar(
-    String pageTitle, {
-    bool isMobile = false,
-  }) {
+  Widget _buildTopBar(String pageTitle) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isCompact = isMobile || constraints.maxWidth < 700;
+        final isCompact = constraints.maxWidth < 700;
 
         return Container(
           height: 76,
@@ -1066,23 +1038,6 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           child: Row(
             children: [
-              if (isMobile) ...[
-                Builder(
-                  builder: (context) {
-                    return IconButton(
-                      tooltip: 'Open navigation',
-                      onPressed: () {
-                        Scaffold.of(context).openDrawer();
-                      },
-                      icon: const Icon(
-                        Icons.menu_rounded,
-                        color: Color(0xFF536170),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 4),
-              ],
               Expanded(
                 child: Text(
                   pageTitle,
@@ -1988,10 +1943,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  List<_TopPerformerRowData> _topBattingPerformers(
-    String teamName,
-    String month,
-  ) {
+  List<_TopPerformerRowData> _topBattingPerformers(String teamName, String month) {
     final rows = <String, _TopPerformerRowData>{};
 
     for (final record in battingPerformanceRecords) {
@@ -2005,21 +1957,14 @@ class _DashboardPageState extends State<DashboardPage> {
       if (playerId.isEmpty) continue;
 
       final playerName = battingPlayerNames[playerId] ?? playerId;
-
-      // Aggregate a player across all active teams when
-      // "All Teams" is selected.
+      final key = '$playerId|$teamId';
       final row = rows.putIfAbsent(
-        playerId,
+        key,
         () => _TopPerformerRowData(
           playerName: playerName,
           teamName: team.name,
         ),
       );
-
-      if (teamName == 'All Teams' &&
-          !row.teamName.split(', ').contains(team.name)) {
-        row.teamName = '${row.teamName}, ${team.name}';
-      }
 
       row.innings++;
       row.primaryValue += _topInt(record['runs']);
@@ -2027,7 +1972,6 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     final result = rows.values.toList();
-
     for (final row in result) {
       row.secondaryValue =
           row.balls == 0 ? 0 : row.primaryValue * 100 / row.balls;
@@ -2042,10 +1986,7 @@ class _DashboardPageState extends State<DashboardPage> {
     return result.take(3).toList();
   }
 
-  List<_TopPerformerRowData> _topBowlingPerformers(
-    String teamName,
-    String month,
-  ) {
+  List<_TopPerformerRowData> _topBowlingPerformers(String teamName, String month) {
     final rows = <String, _TopPerformerRowData>{};
 
     for (final record in bowlingPerformanceRecords) {
@@ -2059,21 +2000,14 @@ class _DashboardPageState extends State<DashboardPage> {
       if (playerId.isEmpty) continue;
 
       final playerName = bowlingPlayerNames[playerId] ?? playerId;
-
-      // Aggregate a player across all active teams when
-      // "All Teams" is selected.
+      final key = '$playerId|$teamId';
       final row = rows.putIfAbsent(
-        playerId,
+        key,
         () => _TopPerformerRowData(
           playerName: playerName,
           teamName: team.name,
         ),
       );
-
-      if (teamName == 'All Teams' &&
-          !row.teamName.split(', ').contains(team.name)) {
-        row.teamName = '${row.teamName}, ${team.name}';
-      }
 
       row.innings++;
       row.primaryValue += _topInt(record['wickets']);
@@ -2082,7 +2016,6 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     final result = rows.values.toList();
-
     for (final row in result) {
       row.secondaryValue = row.secondaryBalls == 0
           ? 0
@@ -2092,20 +2025,15 @@ class _DashboardPageState extends State<DashboardPage> {
     result.sort((a, b) {
       final wickets = b.primaryValue.compareTo(a.primaryValue);
       if (wickets != 0) return wickets;
-
       final economy = a.secondaryValue.compareTo(b.secondaryValue);
       if (economy != 0) return economy;
-
       return b.secondaryBalls.compareTo(a.secondaryBalls);
     });
 
     return result.take(3).toList();
   }
 
-  List<_TopPerformerRowData> _topFieldingPerformers(
-    String teamName,
-    String month,
-  ) {
+  List<_TopPerformerRowData> _topFieldingPerformers(String teamName, String month) {
     final rows = <String, _TopPerformerRowData>{};
 
     for (final record in fieldingPerformanceRecords) {
@@ -2119,21 +2047,14 @@ class _DashboardPageState extends State<DashboardPage> {
       if (playerId.isEmpty) continue;
 
       final playerName = fieldingPlayerNames[playerId] ?? playerId;
-
-      // Aggregate a player across all active teams when
-      // "All Teams" is selected.
+      final key = '$playerId|$teamId';
       final row = rows.putIfAbsent(
-        playerId,
+        key,
         () => _TopPerformerRowData(
           playerName: playerName,
           teamName: team.name,
         ),
       );
-
-      if (teamName == 'All Teams' &&
-          !row.teamName.split(', ').contains(team.name)) {
-        row.teamName = '${row.teamName}, ${team.name}';
-      }
 
       row.innings++;
       row.primaryValue +=
@@ -2145,7 +2066,6 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     final result = rows.values.toList();
-
     result.sort((a, b) {
       final dismissals = b.primaryValue.compareTo(a.primaryValue);
       if (dismissals != 0) return dismissals;
@@ -6070,51 +5990,6 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildDashboard() {
-    final activeTeamIds = firestoreTeams
-        .where((team) => team.active)
-        .map((team) => team.id)
-        .toSet();
-    final selectedTeamId = _selectedActiveTeamId();
-
-    final dashboardMatches = firestoreMatches.where((match) {
-      final involvesActiveTeam =
-          activeTeamIds.contains(match.team1Id) ||
-          activeTeamIds.contains(match.team2Id);
-      if (!involvesActiveTeam) return false;
-      if (selectedTeamId == null) return true;
-      return match.team1Id == selectedTeamId ||
-          match.team2Id == selectedTeamId;
-    }).toList();
-
-    final dashboardPlayers = firestorePlayers.where((player) {
-      final teamIds = playerTeamIds[player.id] ?? <String>[];
-      if (selectedTeamId != null) {
-        return teamIds.contains(selectedTeamId);
-      }
-      return teamIds.any(activeTeamIds.contains);
-    }).toList();
-
-    final dashboardBatting = battingPerformanceRecords.where((record) {
-      final teamId = (record['teamId'] ?? '').toString();
-      return activeTeamIds.contains(teamId) &&
-          (selectedTeamId == null || teamId == selectedTeamId);
-    }).toList();
-
-    final dashboardBowling = bowlingPerformanceRecords.where((record) {
-      final teamId = (record['teamId'] ?? '').toString();
-      return activeTeamIds.contains(teamId) &&
-          (selectedTeamId == null || teamId == selectedTeamId);
-    }).toList();
-
-    final totalRuns = dashboardBatting.fold<int>(
-      0,
-      (sum, record) => sum + _topInt(record['runs']),
-    );
-    final totalWickets = dashboardBowling.fold<int>(
-      0,
-      (sum, record) => sum + _topInt(record['wickets']),
-    );
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(30),
       child: Column(
@@ -6123,33 +5998,27 @@ class _DashboardPageState extends State<DashboardPage> {
           LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 650;
-              final titleBlock = const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Performance Overview',
-                    style: TextStyle(
-                      fontSize: 27,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF17202A),
-                    ),
-                  ),
-                  SizedBox(height: 7),
-                  Text(
-                    'Track batting, bowling and fielding performance across all matches.',
-                    style: TextStyle(
-                      color: Color(0xFF7B8794),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              );
 
               if (compact) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    titleBlock,
+                    const Text(
+                      'Performance Overview',
+                      style: TextStyle(
+                        fontSize: 27,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF17202A),
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    const Text(
+                      'Track batting, bowling and fielding performance across all matches.',
+                      style: TextStyle(
+                        color: Color(0xFF7B8794),
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     _buildTeamSelector(),
                   ],
@@ -6159,7 +6028,29 @@ class _DashboardPageState extends State<DashboardPage> {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: titleBlock),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Performance Overview',
+                          style: TextStyle(
+                            fontSize: 27,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF17202A),
+                          ),
+                        ),
+                        SizedBox(height: 7),
+                        Text(
+                          'Track batting, bowling and fielding performance across all matches.',
+                          style: TextStyle(
+                            color: Color(0xFF7B8794),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(width: 20),
                   _buildTeamSelector(),
                 ],
@@ -6169,51 +6060,83 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(height: 26),
           LayoutBuilder(
             builder: (context, constraints) {
-              final cards = [
-                _statCard(
-                  title: 'Matches',
-                  value: '${dashboardMatches.where((m) => m.completed).length}',
-                  subtitle: 'Completed matches',
-                  icon: Icons.sports_cricket_rounded,
-                ),
-                _statCard(
-                  title: 'Players',
-                  value: '${dashboardPlayers.length}',
-                  subtitle: 'Registered players',
-                  icon: Icons.people_alt_rounded,
-                ),
-                _statCard(
-                  title: 'Runs',
-                  value: '$totalRuns',
-                  subtitle: 'Total runs scored',
-                  icon: Icons.sports_score_rounded,
-                ),
-                _statCard(
-                  title: 'Wickets',
-                  value: '$totalWickets',
-                  subtitle: 'Total wickets',
-                  icon: Icons.sports_baseball_rounded,
-                ),
-              ];
-
               if (constraints.maxWidth < 700) {
                 return Column(
                   children: [
-                    for (int i = 0; i < cards.length; i++) ...[
-                      cards[i],
-                      if (i < cards.length - 1) const SizedBox(height: 16),
-                    ],
+                    _statCard(
+                      title: 'Matches',
+                      value: '0',
+                      subtitle: 'Completed matches',
+                      icon: Icons.sports_cricket_rounded,
+                    ),
+                    const SizedBox(height: 16),
+                    _statCard(
+                      title: 'Players',
+                      value: '0',
+                      subtitle: 'Registered players',
+                      icon: Icons.people_alt_rounded,
+                    ),
+                    const SizedBox(height: 16),
+                    _statCard(
+                      title: 'Runs',
+                      value: '0',
+                      subtitle: 'Total runs scored',
+                      icon: Icons.sports_score_rounded,
+                    ),
+                    const SizedBox(height: 16),
+                    _statCard(
+                      title: 'Wickets',
+                      value: '0',
+                      subtitle: 'Total wickets',
+                      icon: Icons.sports_baseball_rounded,
+                    ),
                   ],
                 );
               }
 
               final cardWidth = (constraints.maxWidth - 48) / 4;
+
               return Row(
                 children: [
-                  for (int i = 0; i < cards.length; i++) ...[
-                    SizedBox(width: cardWidth, child: cards[i]),
-                    if (i < cards.length - 1) const SizedBox(width: 16),
-                  ],
+                  SizedBox(
+                    width: cardWidth,
+                    child: _statCard(
+                      title: 'Matches',
+                      value: '0',
+                      subtitle: 'Completed matches',
+                      icon: Icons.sports_cricket_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  SizedBox(
+                    width: cardWidth,
+                    child: _statCard(
+                      title: 'Players',
+                      value: '0',
+                      subtitle: 'Registered players',
+                      icon: Icons.people_alt_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  SizedBox(
+                    width: cardWidth,
+                    child: _statCard(
+                      title: 'Runs',
+                      value: '0',
+                      subtitle: 'Total runs scored',
+                      icon: Icons.sports_score_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  SizedBox(
+                    width: cardWidth,
+                    child: _statCard(
+                      title: 'Wickets',
+                      value: '0',
+                      subtitle: 'Total wickets',
+                      icon: Icons.sports_baseball_rounded,
+                    ),
+                  ),
                 ],
               );
             },
@@ -6222,16 +6145,24 @@ class _DashboardPageState extends State<DashboardPage> {
           LayoutBuilder(
             builder: (context, constraints) {
               final wide = constraints.maxWidth >= 1000;
+
               if (wide) {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(flex: 3, child: _buildTopBattersCard()),
+                    Expanded(
+                      flex: 3,
+                      child: _buildTopBattersCard(),
+                    ),
                     const SizedBox(width: 20),
-                    Expanded(flex: 2, child: _buildImportCard()),
+                    Expanded(
+                      flex: 2,
+                      child: _buildImportCard(),
+                    ),
                   ],
                 );
               }
+
               return Column(
                 children: [
                   _buildTopBattersCard(),
@@ -6410,110 +6341,28 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildTopBattersCard() {
-    final rows = _topBattingPerformers(selectedTeam, 'All Time');
-
     return _whiteCard(
       title: 'Top Batters',
       trailing: _filterButton('Overall'),
-      child: rows.isEmpty
-          ? Column(
-              children: [
-                const SizedBox(height: 6),
-                _emptyPerformanceRow(
-                  position: '1',
-                  icon: Icons.looks_one_rounded,
-                  message: 'No batting data yet',
-                ),
-                _divider(),
-                _emptyPerformanceRow(
-                  position: '2',
-                  icon: Icons.looks_two_rounded,
-                  message: 'No batting data yet',
-                ),
-                _divider(),
-                _emptyPerformanceRow(
-                  position: '3',
-                  icon: Icons.looks_3_rounded,
-                  message: 'No batting data yet',
-                ),
-              ],
-            )
-          : Column(
-              children: [
-                for (int i = 0; i < rows.length; i++) ...[
-                  _dashboardPerformanceRow(
-                    position: '${i + 1}',
-                    playerName: rows[i].playerName,
-                    teamName: rows[i].teamName,
-                    value: '${rows[i].primaryValue}',
-                    label: 'Runs',
-                  ),
-                  if (i < rows.length - 1) _divider(),
-                ],
-              ],
-            ),
-    );
-  }
-
-  Widget _dashboardPerformanceRow({
-    required String position,
-    required String playerName,
-    required String teamName,
-    required String value,
-    required String label,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 13),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F1FB),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              position,
-              style: const TextStyle(
-                color: Color(0xFF1565C0),
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
+          const SizedBox(height: 6),
+          _emptyPerformanceRow(
+            position: '1',
+            icon: Icons.looks_one_rounded,
+            message: 'No batting data yet',
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  playerName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF263238),
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  teamName,
-                  style: const TextStyle(
-                    color: Color(0xFF8995A3),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
+          _divider(),
+          _emptyPerformanceRow(
+            position: '2',
+            icon: Icons.looks_two_rounded,
+            message: 'No batting data yet',
           ),
-          Text(
-            '$label: $value',
-            style: const TextStyle(
-              color: Color(0xFF1565C0),
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-            ),
+          _divider(),
+          _emptyPerformanceRow(
+            position: '3',
+            icon: Icons.looks_3_rounded,
+            message: 'No batting data yet',
           ),
         ],
       ),
@@ -6521,8 +6370,6 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildImportCard() {
-    final hasImportedMatches = firestoreMatches.isNotEmpty;
-
     return _whiteCard(
       title: 'STUMPS Match Data',
       child: Column(
@@ -6542,23 +6389,19 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
           const SizedBox(height: 17),
-          Text(
-            hasImportedMatches
-                ? '${firestoreMatches.length} match${firestoreMatches.length == 1 ? '' : 'es'} imported'
-                : 'No matches imported',
-            style: const TextStyle(
+          const Text(
+            'No matches imported',
+            style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 15,
               color: Color(0xFF263238),
             ),
           ),
           const SizedBox(height: 7),
-          Text(
-            hasImportedMatches
-                ? 'STUMPS match data is available for performance analysis.'
-                : 'Import a completed STUMPS match report to update player performance.',
+          const Text(
+            'Import a completed STUMPS match report to update player performance.',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: Color(0xFF8995A3),
               fontSize: 12,
               height: 1.5,
@@ -6571,12 +6414,18 @@ class _DashboardPageState extends State<DashboardPage> {
                 selectedIndex = 8;
               });
             },
-            icon: const Icon(Icons.upload_file_rounded, size: 18),
+            icon: const Icon(
+              Icons.upload_file_rounded,
+              size: 18,
+            ),
             label: const Text('Import STUMPS PDF'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1565C0),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 13,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(9),
               ),
@@ -6588,61 +6437,63 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildTopPerformersOverview() {
-    final batting = _topBattingPerformers(selectedTeam, 'All Time');
-    final bowling = _topBowlingPerformers(selectedTeam, 'All Time');
-    final fielding = _topFieldingPerformers(selectedTeam, 'All Time');
-
     return _whiteCard(
       title: 'Top 3 Performers',
-      trailing: _filterButton('Overall'),
+      trailing: _filterButton('This Month'),
       child: Column(
         children: [
           const SizedBox(height: 4),
           LayoutBuilder(
             builder: (context, constraints) {
-              final cards = [
-                _categoryCard(
-                  icon: Icons.sports_cricket_rounded,
-                  title: 'Batting',
-                  subtitle: batting.isEmpty
-                      ? 'No batting data'
-                      : '${batting.first.playerName} · ${batting.first.primaryValue} runs',
-                ),
-                _categoryCard(
-                  icon: Icons.sports_baseball_rounded,
-                  title: 'Bowling',
-                  subtitle: bowling.isEmpty
-                      ? 'No bowling data'
-                      : '${bowling.first.playerName} · ${bowling.first.primaryValue} wickets',
-                ),
-                _categoryCard(
-                  icon: Icons.back_hand_rounded,
-                  title: 'Fielding',
-                  subtitle: fielding.isEmpty
-                      ? 'No fielding data'
-                      : '${fielding.first.playerName} · ${fielding.first.primaryValue} dismissals',
-                ),
-              ];
-
               if (constraints.maxWidth < 700) {
                 return Column(
                   children: [
-                    cards[0],
+                    _categoryCard(
+                      icon: Icons.sports_cricket_rounded,
+                      title: 'Batting',
+                      subtitle: 'Top run scorer',
+                    ),
                     const SizedBox(height: 12),
-                    cards[1],
+                    _categoryCard(
+                      icon: Icons.sports_baseball_rounded,
+                      title: 'Bowling',
+                      subtitle: 'Top wicket taker',
+                    ),
                     const SizedBox(height: 12),
-                    cards[2],
+                    _categoryCard(
+                      icon: Icons.back_hand_rounded,
+                      title: 'Fielding',
+                      subtitle: 'Most dismissals',
+                    ),
                   ],
                 );
               }
 
               return Row(
                 children: [
-                  Expanded(child: cards[0]),
+                  Expanded(
+                    child: _categoryCard(
+                      icon: Icons.sports_cricket_rounded,
+                      title: 'Batting',
+                      subtitle: 'Top run scorer',
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: cards[1]),
+                  Expanded(
+                    child: _categoryCard(
+                      icon: Icons.sports_baseball_rounded,
+                      title: 'Bowling',
+                      subtitle: 'Top wicket taker',
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: cards[2]),
+                  Expanded(
+                    child: _categoryCard(
+                      icon: Icons.back_hand_rounded,
+                      title: 'Fielding',
+                      subtitle: 'Most dismissals',
+                    ),
+                  ),
                 ],
               );
             },
@@ -7217,7 +7068,7 @@ class _BattingRowData {
 
 class _TopPerformerRowData {
   final String playerName;
-  String teamName;
+  final String teamName;
   int innings = 0;
   int primaryValue = 0;
   int balls = 0;
