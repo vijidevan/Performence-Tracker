@@ -5990,6 +5990,38 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildDashboard() {
+    final loadingAnalytics = isLoadingTeams || isLoadingBatting || isLoadingBowling || isLoadingFielding;
+    final activeTeamIds = firestoreTeams.where((team) => team.active).map((team) => team.id).toSet();
+    final selectedTeamId = _selectedActiveTeamId();
+
+    final dashboardMatches = firestoreMatches.where((match) {
+      final involvesActiveTeam = activeTeamIds.contains(match.team1Id) || activeTeamIds.contains(match.team2Id);
+      if (!involvesActiveTeam) return false;
+      if (selectedTeamId == null) return true;
+      return match.team1Id == selectedTeamId || match.team2Id == selectedTeamId;
+    }).toList();
+
+    final completedMatches = dashboardMatches.where((match) => match.completed).length;
+    final battingRows = _battingRows();
+    final bowlingRows = _bowlingRows();
+    final fieldingRows = _fieldingRows();
+
+    final dashboardPlayers = <String>{};
+    for (final player in firestorePlayers) {
+      final teamIds = (playerTeamIds[player.id] ?? <String>[]).toSet();
+      final belongsToSelection = selectedTeamId == null
+          ? teamIds.any(activeTeamIds.contains)
+          : teamIds.contains(selectedTeamId);
+      if (belongsToSelection) dashboardPlayers.add(player.id);
+    }
+
+    final totalRuns = battingRows.fold<int>(0, (sum, row) => sum + row.runs);
+    final totalWickets = bowlingRows.fold<int>(0, (sum, row) => sum + row.wickets);
+    final topBatters = battingRows.take(3).toList();
+    final topBatting = topBatters.isNotEmpty ? topBatters.first : null;
+    final topBowling = bowlingRows.isNotEmpty ? bowlingRows.first : null;
+    final topFielding = fieldingRows.isNotEmpty ? fieldingRows.first : null;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(30),
       child: Column(
@@ -5998,182 +6030,55 @@ class _DashboardPageState extends State<DashboardPage> {
           LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 650;
-
-              if (compact) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Performance Overview',
-                      style: TextStyle(
-                        fontSize: 27,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF17202A),
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    const Text(
-                      'Track batting, bowling and fielding performance across all matches.',
-                      style: TextStyle(
-                        color: Color(0xFF7B8794),
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTeamSelector(),
-                  ],
-                );
-              }
-
-              return Row(
+              final heading = const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Performance Overview',
-                          style: TextStyle(
-                            fontSize: 27,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF17202A),
-                          ),
-                        ),
-                        SizedBox(height: 7),
-                        Text(
-                          'Track batting, bowling and fielding performance across all matches.',
-                          style: TextStyle(
-                            color: Color(0xFF7B8794),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  _buildTeamSelector(),
+                  Text('Performance Overview', style: TextStyle(fontSize: 27, fontWeight: FontWeight.w700, color: Color(0xFF17202A))),
+                  SizedBox(height: 7),
+                  Text('Track batting, bowling and fielding performance across all matches.', style: TextStyle(color: Color(0xFF7B8794), fontSize: 14)),
                 ],
               );
+              if (compact) {
+                return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [heading, const SizedBox(height: 16), _buildTeamSelector()]);
+              }
+              return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: heading), const SizedBox(width: 20), _buildTeamSelector()]);
             },
           ),
           const SizedBox(height: 26),
+          if (loadingAnalytics) const Padding(padding: EdgeInsets.only(bottom: 22), child: LinearProgressIndicator(minHeight: 2)),
           LayoutBuilder(
             builder: (context, constraints) {
+              final cards = [
+                _statCard(title: 'Matches', value: '$completedMatches', subtitle: 'Completed matches', icon: Icons.sports_cricket_rounded),
+                _statCard(title: 'Players', value: '${dashboardPlayers.length}', subtitle: 'Active team players', icon: Icons.people_alt_rounded),
+                _statCard(title: 'Runs', value: '$totalRuns', subtitle: 'Total runs scored', icon: Icons.sports_score_rounded),
+                _statCard(title: 'Wickets', value: '$totalWickets', subtitle: 'Total wickets', icon: Icons.sports_baseball_rounded),
+              ];
               if (constraints.maxWidth < 700) {
-                return Column(
-                  children: [
-                    _statCard(
-                      title: 'Matches',
-                      value: '0',
-                      subtitle: 'Completed matches',
-                      icon: Icons.sports_cricket_rounded,
-                    ),
-                    const SizedBox(height: 16),
-                    _statCard(
-                      title: 'Players',
-                      value: '0',
-                      subtitle: 'Registered players',
-                      icon: Icons.people_alt_rounded,
-                    ),
-                    const SizedBox(height: 16),
-                    _statCard(
-                      title: 'Runs',
-                      value: '0',
-                      subtitle: 'Total runs scored',
-                      icon: Icons.sports_score_rounded,
-                    ),
-                    const SizedBox(height: 16),
-                    _statCard(
-                      title: 'Wickets',
-                      value: '0',
-                      subtitle: 'Total wickets',
-                      icon: Icons.sports_baseball_rounded,
-                    ),
-                  ],
-                );
+                return Column(children: [for (var i = 0; i < cards.length; i++) ...[cards[i], if (i < cards.length - 1) const SizedBox(height: 16)]]);
               }
-
               final cardWidth = (constraints.maxWidth - 48) / 4;
-
-              return Row(
-                children: [
-                  SizedBox(
-                    width: cardWidth,
-                    child: _statCard(
-                      title: 'Matches',
-                      value: '0',
-                      subtitle: 'Completed matches',
-                      icon: Icons.sports_cricket_rounded,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  SizedBox(
-                    width: cardWidth,
-                    child: _statCard(
-                      title: 'Players',
-                      value: '0',
-                      subtitle: 'Registered players',
-                      icon: Icons.people_alt_rounded,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  SizedBox(
-                    width: cardWidth,
-                    child: _statCard(
-                      title: 'Runs',
-                      value: '0',
-                      subtitle: 'Total runs scored',
-                      icon: Icons.sports_score_rounded,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  SizedBox(
-                    width: cardWidth,
-                    child: _statCard(
-                      title: 'Wickets',
-                      value: '0',
-                      subtitle: 'Total wickets',
-                      icon: Icons.sports_baseball_rounded,
-                    ),
-                  ),
-                ],
-              );
+              return Row(children: [for (var i = 0; i < cards.length; i++) ...[SizedBox(width: cardWidth, child: cards[i]), if (i < cards.length - 1) const SizedBox(width: 16)]]);
             },
           ),
           const SizedBox(height: 28),
           LayoutBuilder(
             builder: (context, constraints) {
               final wide = constraints.maxWidth >= 1000;
-
               if (wide) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: _buildTopBattersCard(),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      flex: 2,
-                      child: _buildImportCard(),
-                    ),
-                  ],
-                );
+                return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Expanded(flex: 3, child: _buildTopBattersCard(topBatters)),
+                  if (isAdmin) ...[const SizedBox(width: 20), Expanded(flex: 2, child: _buildImportCard())],
+                ]);
               }
-
-              return Column(
-                children: [
-                  _buildTopBattersCard(),
-                  const SizedBox(height: 20),
-                  _buildImportCard(),
-                ],
-              );
+              return Column(children: [
+                _buildTopBattersCard(topBatters),
+                if (isAdmin) ...[const SizedBox(height: 20), _buildImportCard()],
+              ]);
             },
           ),
           const SizedBox(height: 24),
-          _buildTopPerformersOverview(),
+          _buildTopPerformersOverview(topBatting: topBatting, topBowling: topBowling, topFielding: topFielding),
         ],
       ),
     );
@@ -6340,32 +6245,47 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildTopBattersCard() {
+  Widget _buildTopBattersCard(List<_BattingRowData> topBatters) {
     return _whiteCard(
       title: 'Top Batters',
       trailing: _filterButton('Overall'),
-      child: Column(
-        children: [
-          const SizedBox(height: 6),
-          _emptyPerformanceRow(
-            position: '1',
-            icon: Icons.looks_one_rounded,
-            message: 'No batting data yet',
-          ),
-          _divider(),
-          _emptyPerformanceRow(
-            position: '2',
-            icon: Icons.looks_two_rounded,
-            message: 'No batting data yet',
-          ),
-          _divider(),
-          _emptyPerformanceRow(
-            position: '3',
-            icon: Icons.looks_3_rounded,
-            message: 'No batting data yet',
-          ),
-        ],
-      ),
+      child: topBatters.isEmpty
+          ? Column(children: [
+              const SizedBox(height: 6),
+              _emptyPerformanceRow(position: '1', icon: Icons.looks_one_rounded, message: 'No batting data yet'),
+              _divider(),
+              _emptyPerformanceRow(position: '2', icon: Icons.looks_two_rounded, message: 'No batting data yet'),
+              _divider(),
+              _emptyPerformanceRow(position: '3', icon: Icons.looks_3_rounded, message: 'No batting data yet'),
+            ])
+          : Column(children: [
+              const SizedBox(height: 4),
+              for (var i = 0; i < topBatters.length; i++) ...[
+                _dashboardBattingRow(topBatters[i], i + 1),
+                if (i < topBatters.length - 1) _divider(),
+              ],
+            ]),
+    );
+  }
+
+  Widget _dashboardBattingRow(_BattingRowData row, int position) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 13),
+      child: Row(children: [
+        _rankBadge(position),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(row.playerName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF263238))),
+          const SizedBox(height: 3),
+          Text(row.teamNames.join(' • '), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: Color(0xFF8A96A3))),
+        ])),
+        const SizedBox(width: 12),
+        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text('${row.runs} runs', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF1565C0))),
+          const SizedBox(height: 3),
+          Text('${row.innings} inns • SR ${row.strikeRate.toStringAsFixed(1)}', style: const TextStyle(fontSize: 10, color: Color(0xFF7B8794))),
+        ]),
+      ]),
     );
   }
 
@@ -6411,7 +6331,10 @@ class _DashboardPageState extends State<DashboardPage> {
           ElevatedButton.icon(
             onPressed: () {
               setState(() {
-                selectedIndex = 8;
+                selectedIndex = navigationItems.indexWhere((item) => item.title == 'STUMPS Import');
+                if (selectedIndex < 0) {
+                  selectedIndex = 0;
+                }
               });
             },
             icon: const Icon(
@@ -6436,70 +6359,28 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildTopPerformersOverview() {
+  Widget _buildTopPerformersOverview({
+    required _BattingRowData? topBatting,
+    required _BowlingRowData? topBowling,
+    required _FieldingRowData? topFielding,
+  }) {
     return _whiteCard(
-      title: 'Top 3 Performers',
-      trailing: _filterButton('This Month'),
-      child: Column(
-        children: [
-          const SizedBox(height: 4),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 700) {
-                return Column(
-                  children: [
-                    _categoryCard(
-                      icon: Icons.sports_cricket_rounded,
-                      title: 'Batting',
-                      subtitle: 'Top run scorer',
-                    ),
-                    const SizedBox(height: 12),
-                    _categoryCard(
-                      icon: Icons.sports_baseball_rounded,
-                      title: 'Bowling',
-                      subtitle: 'Top wicket taker',
-                    ),
-                    const SizedBox(height: 12),
-                    _categoryCard(
-                      icon: Icons.back_hand_rounded,
-                      title: 'Fielding',
-                      subtitle: 'Most dismissals',
-                    ),
-                  ],
-                );
-              }
-
-              return Row(
-                children: [
-                  Expanded(
-                    child: _categoryCard(
-                      icon: Icons.sports_cricket_rounded,
-                      title: 'Batting',
-                      subtitle: 'Top run scorer',
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _categoryCard(
-                      icon: Icons.sports_baseball_rounded,
-                      title: 'Bowling',
-                      subtitle: 'Top wicket taker',
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _categoryCard(
-                      icon: Icons.back_hand_rounded,
-                      title: 'Fielding',
-                      subtitle: 'Most dismissals',
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
+      title: 'Top Performers',
+      trailing: _filterButton('Overall'),
+      child: Column(children: [
+        const SizedBox(height: 4),
+        LayoutBuilder(builder: (context, constraints) {
+          final cards = [
+            _categoryCard(icon: Icons.sports_cricket_rounded, title: 'Batting', subtitle: topBatting == null ? 'No batting data' : '${topBatting.playerName} • ${topBatting.runs} runs'),
+            _categoryCard(icon: Icons.sports_baseball_rounded, title: 'Bowling', subtitle: topBowling == null ? 'No bowling data' : '${topBowling.playerName} • ${topBowling.wickets} wickets'),
+            _categoryCard(icon: Icons.back_hand_rounded, title: 'Fielding', subtitle: topFielding == null ? 'No fielding data' : '${topFielding.playerName} • ${topFielding.totalDismissals} dismissals'),
+          ];
+          if (constraints.maxWidth < 700) {
+            return Column(children: [cards[0], const SizedBox(height: 12), cards[1], const SizedBox(height: 12), cards[2]]);
+          }
+          return Row(children: [Expanded(child: cards[0]), const SizedBox(width: 16), Expanded(child: cards[1]), const SizedBox(width: 16), Expanded(child: cards[2])]);
+        }),
+      ]),
     );
   }
 
