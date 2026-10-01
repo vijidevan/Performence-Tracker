@@ -1957,7 +1957,7 @@ class _DashboardPageState extends State<DashboardPage> {
       if (playerId.isEmpty) continue;
 
       final playerName = battingPlayerNames[playerId] ?? playerId;
-      final key = '$playerId|$teamId';
+      final key = teamName == 'All Teams' ? playerId : '$playerId|$teamId';
       final row = rows.putIfAbsent(
         key,
         () => _TopPerformerRowData(
@@ -1965,6 +1965,11 @@ class _DashboardPageState extends State<DashboardPage> {
           teamName: team.name,
         ),
       );
+
+      if (teamName == 'All Teams' &&
+          !row.teamName.split(', ').contains(team.name)) {
+        row.teamName = '${row.teamName}, ${team.name}';
+      }
 
       row.innings++;
       row.primaryValue += _topInt(record['runs']);
@@ -2000,7 +2005,7 @@ class _DashboardPageState extends State<DashboardPage> {
       if (playerId.isEmpty) continue;
 
       final playerName = bowlingPlayerNames[playerId] ?? playerId;
-      final key = '$playerId|$teamId';
+      final key = teamName == 'All Teams' ? playerId : '$playerId|$teamId';
       final row = rows.putIfAbsent(
         key,
         () => _TopPerformerRowData(
@@ -2008,6 +2013,11 @@ class _DashboardPageState extends State<DashboardPage> {
           teamName: team.name,
         ),
       );
+
+      if (teamName == 'All Teams' &&
+          !row.teamName.split(', ').contains(team.name)) {
+        row.teamName = '${row.teamName}, ${team.name}';
+      }
 
       row.innings++;
       row.primaryValue += _topInt(record['wickets']);
@@ -2047,7 +2057,7 @@ class _DashboardPageState extends State<DashboardPage> {
       if (playerId.isEmpty) continue;
 
       final playerName = fieldingPlayerNames[playerId] ?? playerId;
-      final key = '$playerId|$teamId';
+      final key = teamName == 'All Teams' ? playerId : '$playerId|$teamId';
       final row = rows.putIfAbsent(
         key,
         () => _TopPerformerRowData(
@@ -2055,6 +2065,11 @@ class _DashboardPageState extends State<DashboardPage> {
           teamName: team.name,
         ),
       );
+
+      if (teamName == 'All Teams' &&
+          !row.teamName.split(', ').contains(team.name)) {
+        row.teamName = '${row.teamName}, ${team.name}';
+      }
 
       row.innings++;
       row.primaryValue +=
@@ -6949,7 +6964,7 @@ class _BattingRowData {
 
 class _TopPerformerRowData {
   final String playerName;
-  final String teamName;
+  String teamName;
   int innings = 0;
   int primaryValue = 0;
   int balls = 0;
