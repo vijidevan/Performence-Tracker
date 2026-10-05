@@ -15,6 +15,8 @@ import 'services/stumps_import_service.dart';
 import 'match_details_page.dart';
 import 'package:file_picker/file_picker.dart';
 import 'services/stumps_file_picker.dart';
+import 'services/cloudinary_player_photo_service.dart';
+import 'services/player_photo_picker.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -477,6 +479,7 @@ class _DashboardPageState extends State<DashboardPage> {
   List<PlayerModel> firestorePlayers = [];
   Map<String, List<String>> playerTeamIds = {};
   Map<String, List<String>> playerTeamNames = {};
+  Map<String, String> playerPhotoUrls = {};
   String playerSearchQuery = '';
 
   final TeamRepository _teamRepository = TeamRepository();
@@ -584,10 +587,16 @@ class _DashboardPageState extends State<DashboardPage> {
         return;
       }
 
+      final photoUrls = <String, String>{
+        for (final player in filteredPlayers)
+          if (player.photoUrl.isNotEmpty) player.id: player.photoUrl,
+      };
+
       setState(() {
         firestorePlayers = filteredPlayers;
         playerTeamIds = idsByPlayer;
         playerTeamNames = namesByPlayer;
+        playerPhotoUrls = photoUrls;
         isLoadingPlayers = false;
         playerLoadError = null;
       });
@@ -2052,6 +2061,7 @@ class _DashboardPageState extends State<DashboardPage> {
       final row = rows.putIfAbsent(
         key,
         () => _TopPerformerRowData(
+          playerId: playerId,
           playerName: playerName,
           teamName: team.name,
         ),
@@ -2100,6 +2110,7 @@ class _DashboardPageState extends State<DashboardPage> {
       final row = rows.putIfAbsent(
         key,
         () => _TopPerformerRowData(
+          playerId: playerId,
           playerName: playerName,
           teamName: team.name,
         ),
@@ -2152,6 +2163,7 @@ class _DashboardPageState extends State<DashboardPage> {
       final row = rows.putIfAbsent(
         key,
         () => _TopPerformerRowData(
+          playerId: playerId,
           playerName: playerName,
           teamName: team.name,
         ),
@@ -2310,6 +2322,12 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Row(
         children: [
           _rankBadge(position),
+          const SizedBox(width: 10),
+          _playerAvatar(
+            playerId: row.playerId,
+            playerName: row.playerName,
+            radius: 18,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -2810,16 +2828,61 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  Widget _playerAvatar({
+    required String playerId,
+    required String playerName,
+    double radius = 18,
+  }) {
+    final photoUrl = playerPhotoUrls[playerId] ?? '';
+
+    if (photoUrl.isNotEmpty) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: const Color(0xFFE8F1FB),
+        child: ClipOval(
+          child: Image.network(
+            photoUrl,
+            width: radius * 2,
+            height: radius * 2,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Text(
+              _playerInitials(playerName),
+              style: TextStyle(
+                color: const Color(0xFF1565C0),
+                fontSize: radius * 0.48,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: const Color(0xFFE8F1FB),
+      child: Text(
+        _playerInitials(playerName),
+        style: TextStyle(
+          color: const Color(0xFF1565C0),
+          fontSize: radius * 0.48,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
   Widget _buildPlayerCard(PlayerModel player) {
     final teams = playerTeamNames[player.id] ?? <String>[];
 
     return InkWell(
       borderRadius: BorderRadius.circular(14),
-      onTap: () {
-        Navigator.of(context).push(
+      onTap: () async {
+        await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => _PlayerDetailsPage(
               player: player,
+              isAdmin: isAdmin,
               teamNames: teams,
               firestore: _firestore,
               teamRepository: _teamRepository,
@@ -2831,6 +2894,9 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
         );
+        if (mounted) {
+          await _loadPlayers();
+        }
       },
       child: Container(
       margin: const EdgeInsets.only(bottom: 0),
@@ -2854,17 +2920,10 @@ class _DashboardPageState extends State<DashboardPage> {
         children: [
           Row(
             children: [
-              CircleAvatar(
+              _playerAvatar(
+                playerId: player.id,
+                playerName: player.name,
                 radius: 24,
-                backgroundColor: const Color(0xFFE8F1FB),
-                child: Text(
-                  _playerInitials(player.name),
-                  style: const TextStyle(
-                    color: Color(0xFF1565C0),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
               ),
               const SizedBox(width: 13),
               Expanded(
@@ -3488,6 +3547,8 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 _rankBadge(position),
                 const SizedBox(width: 10),
+                _playerAvatar(playerId: row.playerId, playerName: row.playerName, radius: 18),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -3553,6 +3614,8 @@ class _DashboardPageState extends State<DashboardPage> {
           Row(
             children: [
               _rankBadge(position),
+              const SizedBox(width: 10),
+              _playerAvatar(playerId: row.playerId, playerName: row.playerName, radius: 18),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -4039,6 +4102,8 @@ class _DashboardPageState extends State<DashboardPage> {
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       child: Row(children: [
         SizedBox(width: 38, child: Text('$position', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9AA5B1)))),
+        _playerAvatar(playerId: row.playerId, playerName: row.playerName, radius: 18),
+        const SizedBox(width: 10),
         Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(row.playerName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF263238))),
           const SizedBox(height: 3),
@@ -4098,6 +4163,8 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Text('$position', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9AA5B1))),
+          const SizedBox(width: 10),
+          _playerAvatar(playerId: row.playerId, playerName: row.playerName, radius: 18),
           const SizedBox(width: 10),
           Expanded(child: Text(row.playerName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF263238)))),
           Text('${row.wickets} wkts', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1565C0))),
@@ -4795,17 +4862,10 @@ class _DashboardPageState extends State<DashboardPage> {
             flex: 4,
             child: Row(
               children: [
-                CircleAvatar(
+                _playerAvatar(
+                  playerId: row.playerId,
+                  playerName: row.playerName,
                   radius: 18,
-                  backgroundColor: const Color(0xFFE8F1FB),
-                  child: Text(
-                    _playerInitials(row.playerName),
-                    style: const TextStyle(
-                      color: Color(0xFF1565C0),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -4924,18 +4984,11 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
               const SizedBox(width: 10),
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: const Color(0xFFE8F1FB),
-                child: Text(
-                  _playerInitials(row.playerName),
-                  style: const TextStyle(
-                    color: Color(0xFF1565C0),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
+                _playerAvatar(
+                  playerId: row.playerId,
+                  playerName: row.playerName,
+                  radius: 18,
                 ),
-              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -5351,6 +5404,92 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  Future<void> _deleteMatch(MatchModel match) async {
+    if (!isAdmin) {
+      return;
+    }
+
+    final team1 = matchTeamLookup[match.team1Id];
+    final team2 = matchTeamLookup[match.team2Id];
+
+    final team1Name =
+        team1?.name.isNotEmpty == true ? team1!.name : match.team1Id;
+    final team2Name =
+        team2?.name.isNotEmpty == true ? team2!.name : match.team2Id;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Match?'),
+          content: Text(
+            'This will permanently delete:\n\n'
+            '$team1Name vs $team2Name\n\n'
+            'The match and all player performance records '
+            'belonging to this match will be deleted.\n\n'
+            'This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    try {
+      await _matchRepository.deleteMatch(match.id);
+
+      if (!mounted) {
+        return;
+      }
+
+      await _loadMatches();
+      await _loadBattingPerformance();
+      await _loadBowlingPerformance();
+      await _loadFieldingPerformance();
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Match and its performance records deleted successfully.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to delete match: $e'),
+        ),
+      );
+    }
+  }
+
   Widget _buildMatchCard(MatchModel match) {
     final team1 = matchTeamLookup[match.team1Id];
     final team2 = matchTeamLookup[match.team2Id];
@@ -5606,6 +5745,35 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
 
+    final deleteButton = OutlinedButton.icon(
+      onPressed: () => _deleteMatch(match),
+      icon: const Icon(
+        Icons.delete_outline_rounded,
+        size: 16,
+      ),
+      label: const Text('Delete Match'),
+      style: OutlinedButton.styleFrom(
+        minimumSize: compact
+            ? const Size.fromHeight(44)
+            : const Size(0, 40),
+        foregroundColor: Colors.red,
+        side: const BorderSide(
+          color: Color(0xFFE5B8B8),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 10,
+        ),
+        textStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+
     return Container(
       padding: const EdgeInsets.only(top: 14),
       decoration: const BoxDecoration(
@@ -5630,6 +5798,13 @@ class _DashboardPageState extends State<DashboardPage> {
                   width: double.infinity,
                   child: detailsButton,
                 ),
+                if (isAdmin) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: deleteButton,
+                  ),
+                ],
               ],
             )
           : Wrap(
@@ -5639,6 +5814,7 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 ...detailItems,
                 detailsButton,
+                if (isAdmin) deleteButton,
               ],
             ),
     );
@@ -6519,6 +6695,8 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Row(children: [
         _rankBadge(position),
         const SizedBox(width: 12),
+        _playerAvatar(playerId: row.playerId, playerName: row.playerName, radius: 18),
+        const SizedBox(width: 10),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(row.playerName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF263238))),
           const SizedBox(height: 3),
@@ -6832,9 +7010,11 @@ class _PlayerDetailsPage extends StatefulWidget {
   final TeamRepository teamRepository;
   final MatchRepository matchRepository;
   final Set<String> activeTeamIds;
+  final bool isAdmin;
 
   const _PlayerDetailsPage({
     required this.player,
+    required this.isAdmin,
     required this.teamNames,
     required this.firestore,
     required this.teamRepository,
@@ -6852,11 +7032,50 @@ class _PlayerDetailsPageState extends State<_PlayerDetailsPage> {
   List<Map<String, dynamic>> performances = [];
   final Map<String, TeamModel> teams = {};
   final Map<String, MatchModel> matches = {};
+  late PlayerModel currentPlayer;
+  bool uploadingPhoto = false;
 
   @override
   void initState() {
     super.initState();
+    currentPlayer = widget.player;
     _loadPerformance();
+  }
+
+  Future<void> _uploadPlayerPhoto() async {
+    if (!widget.isAdmin || uploadingPhoto) return;
+
+    try {
+      final file = await PlayerPhotoPicker.pickPhoto();
+      if (file == null || file.bytes == null) return;
+
+      setState(() => uploadingPhoto = true);
+
+      final photoUrl = await CloudinaryPlayerPhotoService.uploadPlayerPhoto(
+      bytes: file.bytes!,
+      fileName: file.name,
+    );
+
+      final updatedPlayer = currentPlayer.copyWith(photoUrl: photoUrl);
+      final repository = PlayerRepository(firestore: widget.firestore);
+      await repository.updatePlayer(updatedPlayer);
+
+      if (!mounted) return;
+      setState(() {
+        currentPlayer = updatedPlayer;
+        uploadingPhoto = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Player photo updated successfully.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => uploadingPhoto = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Photo upload failed: $e')),
+      );
+    }
   }
 
   Future<void> _loadPerformance() async {
@@ -7041,21 +7260,70 @@ class _PlayerDetailsPageState extends State<_PlayerDetailsPage> {
   }
 
   Widget _header() {
+    final photoUrl = currentPlayer.photoUrl;
+
+    final avatar = photoUrl.isNotEmpty
+        ? CircleAvatar(
+            radius: 31,
+            backgroundColor: const Color(0xFFE8F1FB),
+            backgroundImage: NetworkImage(photoUrl),
+          )
+        : CircleAvatar(
+            radius: 31,
+            backgroundColor: const Color(0xFFE8F1FB),
+            child: Text(
+              _initials(currentPlayer.name),
+              style: const TextStyle(
+                color: Color(0xFF1565C0),
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+              ),
+            ),
+          );
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE4E8ED))),
-      child: Row(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4E8ED)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(radius: 31, backgroundColor: const Color(0xFFE8F1FB), child: Text(_initials(widget.player.name), style: const TextStyle(color: Color(0xFF1565C0), fontWeight: FontWeight.w800, fontSize: 16))),
-          const SizedBox(width: 16),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(widget.player.name, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w800, color: Color(0xFF17202A))),
-            const SizedBox(height: 5),
-            Text(widget.teamNames.isEmpty ? 'No team relationship' : widget.teamNames.join(' • '), style: const TextStyle(color: Color(0xFF718096), fontSize: 13)),
-            const SizedBox(height: 5),
-            Text('${performances.length} match${performances.length == 1 ? '' : 'es'} • ${widget.player.active ? 'Active player' : 'Inactive player'}', style: const TextStyle(color: Color(0xFF9AA5B1), fontSize: 11)),
-          ])),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              avatar,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(currentPlayer.name, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w800, color: Color(0xFF17202A))),
+                    const SizedBox(height: 5),
+                    Text(widget.teamNames.isEmpty ? 'No team relationship' : widget.teamNames.join(' • '), style: const TextStyle(color: Color(0xFF718096), fontSize: 13)),
+                    const SizedBox(height: 5),
+                    Text('${performances.length} match${performances.length == 1 ? '' : 'es'} • ${currentPlayer.active ? 'Active player' : 'Inactive player'}', style: const TextStyle(color: Color(0xFF9AA5B1), fontSize: 11)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (widget.isAdmin) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: uploadingPhoto ? null : _uploadPlayerPhoto,
+                icon: uploadingPhoto
+                    ? const SizedBox(width: 17, height: 17, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.photo_camera_outlined),
+                label: Text(uploadingPhoto ? 'Uploading photo...' : (photoUrl.isEmpty ? 'Upload Player Photo' : 'Change Player Photo')),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -7193,6 +7461,7 @@ class _BattingRowData {
 }
 
 class _TopPerformerRowData {
+  final String playerId;
   final String playerName;
   String teamName;
   int innings = 0;
@@ -7203,6 +7472,7 @@ class _TopPerformerRowData {
   double secondaryValue = 0;
 
   _TopPerformerRowData({
+    required this.playerId,
     required this.playerName,
     required this.teamName,
   });

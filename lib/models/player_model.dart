@@ -3,12 +3,14 @@ class PlayerModel {
   final String name;
   final bool active;
   final DateTime createdAt;
+  final String photoUrl;
 
   const PlayerModel({
     required this.id,
     required this.name,
     this.active = true,
     required this.createdAt,
+    this.photoUrl = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -17,6 +19,7 @@ class PlayerModel {
       'name': name,
       'active': active,
       'createdAt': createdAt.toIso8601String(),
+      'photoUrl': photoUrl,
     };
   }
 
@@ -29,6 +32,7 @@ class PlayerModel {
             map['createdAt'] as String? ?? '',
           ) ??
           DateTime.now(),
+      photoUrl: map['photoUrl'] as String? ?? '',
     );
   }
 
@@ -37,12 +41,14 @@ class PlayerModel {
     String? name,
     bool? active,
     DateTime? createdAt,
+    String? photoUrl,
   }) {
     return PlayerModel(
       id: id ?? this.id,
       name: name ?? this.name,
       active: active ?? this.active,
       createdAt: createdAt ?? this.createdAt,
+      photoUrl: photoUrl ?? this.photoUrl,
     );
   }
 }

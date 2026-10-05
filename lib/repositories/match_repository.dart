@@ -1,13 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/match_model.dart';
+import 'player_match_performance_repository.dart';
 
 class MatchRepository {
   final FirebaseFirestore _firestore;
+  final PlayerMatchPerformanceRepository _performanceRepository;
 
   MatchRepository({
     FirebaseFirestore? firestore,
-  }) : _firestore = firestore ?? FirebaseFirestore.instance;
+    PlayerMatchPerformanceRepository? performanceRepository,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _performanceRepository = performanceRepository ??
+            PlayerMatchPerformanceRepository(
+              firestore: firestore ?? FirebaseFirestore.instance,
+            );
 
   CollectionReference<Map<String, dynamic>> get _matches =>
       _firestore.collection('matches');
@@ -105,6 +112,19 @@ class MatchRepository {
   }
 
   Future<void> deleteMatch(String matchId) async {
-    await _matches.doc(matchId).delete();
+    final normalizedMatchId = matchId.trim();
+
+    if (normalizedMatchId.isEmpty) {
+      return;
+    }
+
+    // Remove all player performance records belonging
+    // to this match before deleting the match itself.
+    await _performanceRepository.deletePerformancesForMatch(
+      normalizedMatchId,
+    );
+
+    // Finally remove the match document.
+    await _matches.doc(normalizedMatchId).delete();
   }
 }

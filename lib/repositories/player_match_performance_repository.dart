@@ -137,4 +137,41 @@ class PlayerMatchPerformanceRepository {
   ) async {
     await _performances.doc(performanceId).delete();
   }
+
+  Future<void> deletePerformancesForMatch(
+    String matchId,
+  ) async {
+    if (matchId.trim().isEmpty) {
+      return;
+    }
+
+    final snapshot = await _performances
+        .where(
+          'matchId',
+          isEqualTo: matchId,
+        )
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      return;
+    }
+
+    const batchSize = 400;
+
+    for (var start = 0;
+        start < snapshot.docs.length;
+        start += batchSize) {
+      final end = (start + batchSize < snapshot.docs.length)
+          ? start + batchSize
+          : snapshot.docs.length;
+
+      final batch = _firestore.batch();
+
+      for (final doc in snapshot.docs.sublist(start, end)) {
+        batch.delete(doc.reference);
+      }
+
+      await batch.commit();
+    }
+  }
 }
