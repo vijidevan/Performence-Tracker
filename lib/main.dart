@@ -900,22 +900,25 @@ class _DashboardPageState extends State<DashboardPage> {
       color: const Color(0xFF0D1B2A),
       child: Column(
         children: [
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 22),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: 46,
+                  height: 46,
+                  padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1565C0),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.sports_cricket_rounded,
-                    color: Colors.white,
-                    size: 27,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      'assets/images/team_performance_logo.png',
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -944,6 +947,16 @@ class _DashboardPageState extends State<DashboardPage> {
                     ],
                   ),
                 ),
+                if (isDrawer)
+                  IconButton(
+                    tooltip: 'Close menu',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Color(0xFF9EADBC),
+                      size: 21,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -1022,9 +1035,9 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             child: Column(
               children: [
-                const Row(
+                Row(
                   children: [
-                    CircleAvatar(
+                    const CircleAvatar(
                       radius: 18,
                       backgroundColor: Color(0xFF1565C0),
                       child: Icon(
@@ -1039,8 +1052,8 @@ class _DashboardPageState extends State<DashboardPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Administrator',
-                            style: TextStyle(
+                            isAdmin ? 'Administrator' : 'Read Only',
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -1268,35 +1281,106 @@ class _DashboardPageState extends State<DashboardPage> {
     final inactiveTeams = firestoreTeams.where((team) => !team.active).toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(30, 24, 30, 40),
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Settings',
-            style: TextStyle(
-              fontSize: 27,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF17202A),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isAdmin
-                ? 'Signed in as Administrator — PDF import and data management are enabled.'
-                : 'Signed in as Read Only — analytics and data viewing are enabled.',
-            style: const TextStyle(
-              color: Color(0xFF7B8794),
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Manage application configuration and view the current data setup.',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF7B8794),
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 650;
+
+              final heading = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Settings',
+                    style: TextStyle(
+                      fontSize: 27,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF17202A),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    isAdmin
+                        ? 'Administrator access — PDF import and data management are enabled.'
+                        : 'Read-only access — analytics and data viewing are enabled.',
+                    style: const TextStyle(
+                      color: Color(0xFF7B8794),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  const Text(
+                    'View the current application configuration and data setup.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF7B8794),
+                    ),
+                  ),
+                ],
+              );
+
+              final accessBadge = Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                decoration: BoxDecoration(
+                  color: isAdmin
+                      ? const Color(0xFFE8F5E9)
+                      : const Color(0xFFE8F1FB),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isAdmin
+                        ? const Color(0xFFC8E6C9)
+                        : const Color(0xFFD6E5F5),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isAdmin
+                          ? Icons.admin_panel_settings_rounded
+                          : Icons.visibility_rounded,
+                      size: 18,
+                      color: isAdmin
+                          ? const Color(0xFF2E7D32)
+                          : const Color(0xFF1565C0),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isAdmin ? 'Administrator' : 'Read Only',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: isAdmin
+                            ? const Color(0xFF2E7D32)
+                            : const Color(0xFF1565C0),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+
+              if (compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    heading,
+                    const SizedBox(height: 14),
+                    accessBadge,
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: heading),
+                  const SizedBox(width: 20),
+                  accessBadge,
+                ],
+              );
+            },
           ),
           const SizedBox(height: 24),
           LayoutBuilder(
@@ -1333,10 +1417,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       else if (firestoreTeams.isEmpty)
                         _settingsEmpty('No teams found in Firestore.')
                       else
-                        ...firestoreTeams.map(
-                          (team) => _settingsTeamRow(team),
-                        ),
-                      const SizedBox(height: 14),
+                        ...firestoreTeams.map((team) => _settingsTeamRow(team)),
+                      const SizedBox(height: 6),
                       Align(
                         alignment: Alignment.centerRight,
                         child: OutlinedButton.icon(
@@ -1354,26 +1436,10 @@ class _DashboardPageState extends State<DashboardPage> {
                   subtitle: 'Current data sources used by Team Performance.',
                   child: Column(
                     children: [
-                      _settingsInfoRow(
-                        Icons.cloud_rounded,
-                        'Primary Database',
-                        'Firebase Firestore',
-                      ),
-                      _settingsInfoRow(
-                        Icons.picture_as_pdf_rounded,
-                        'Match Data Source',
-                        'STUMPS PDF reports',
-                      ),
-                      _settingsInfoRow(
-                        Icons.sync_rounded,
-                        'Analytics',
-                        'Calculated from imported match performances',
-                      ),
-                      _settingsInfoRow(
-                        Icons.security_rounded,
-                        'Data Scope',
-                        'Active teams for analytics; opponents remain inactive',
-                      ),
+                      _settingsInfoRow(Icons.cloud_rounded, 'Primary Database', 'Firebase Firestore'),
+                      _settingsInfoRow(Icons.picture_as_pdf_rounded, 'Match Data Source', 'STUMPS PDF reports'),
+                      _settingsInfoRow(Icons.sync_rounded, 'Analytics', 'Calculated from imported match performances'),
+                      _settingsInfoRow(Icons.security_rounded, 'Data Scope', 'Active teams for analytics; opponents remain inactive'),
                     ],
                   ),
                 ),
@@ -1383,26 +1449,10 @@ class _DashboardPageState extends State<DashboardPage> {
                   subtitle: 'General application information.',
                   child: Column(
                     children: [
-                      _settingsInfoRow(
-                        Icons.sports_cricket_rounded,
-                        'Application',
-                        'Team Performance',
-                      ),
-                      _settingsInfoRow(
-                        Icons.language_rounded,
-                        'Platform',
-                        'Flutter Web',
-                      ),
-                      _settingsInfoRow(
-                        Icons.analytics_rounded,
-                        'Analytics Modules',
-                        'Batting, Bowling, Fielding, Top Performers, Monthly Analysis',
-                      ),
-                      _settingsInfoRow(
-                        Icons.picture_as_pdf_rounded,
-                        'Import Protection',
-                        'STUMPS Match ID prevents duplicate imports',
-                      ),
+                      _settingsInfoRow(Icons.sports_cricket_rounded, 'Application', 'Team Performance'),
+                      _settingsInfoRow(Icons.language_rounded, 'Platform', 'Flutter Web'),
+                      _settingsInfoRow(Icons.analytics_rounded, 'Analytics Modules', 'Batting, Bowling, Fielding, Top Performers, Monthly Analysis'),
+                      _settingsInfoRow(Icons.picture_as_pdf_rounded, 'Import Protection', 'STUMPS Match ID prevents duplicate imports'),
                     ],
                   ),
                 ),
@@ -1412,21 +1462,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   subtitle: 'Current Firebase environment.',
                   child: Column(
                     children: [
-                      _settingsInfoRow(
-                        Icons.folder_special_rounded,
-                        'Firebase Project',
-                        'team-performance-2026',
-                      ),
-                      _settingsInfoRow(
-                        Icons.storage_rounded,
-                        'Firestore Database',
-                        '(default)',
-                      ),
-                      _settingsInfoRow(
-                        Icons.public_rounded,
-                        'Region',
-                        'asia-south1',
-                      ),
+                      _settingsInfoRow(Icons.folder_special_rounded, 'Firebase Project', 'team-performance-2026'),
+                      _settingsInfoRow(Icons.storage_rounded, 'Firestore Database', '(default)'),
+                      _settingsInfoRow(Icons.public_rounded, 'Region', 'asia-south1'),
                     ],
                   ),
                 ),
@@ -1435,12 +1473,10 @@ class _DashboardPageState extends State<DashboardPage> {
               if (!twoColumns) {
                 return Column(
                   children: cards
-                      .map(
-                        (card) => Padding(
-                          padding: const EdgeInsets.only(bottom: 18),
-                          child: card,
-                        ),
-                      )
+                      .map((card) => Padding(
+                            padding: const EdgeInsets.only(bottom: 18),
+                            child: card,
+                          ))
                       .toList(),
                 );
               }
@@ -1449,12 +1485,10 @@ class _DashboardPageState extends State<DashboardPage> {
                 spacing: 18,
                 runSpacing: 18,
                 children: cards
-                    .map(
-                      (card) => SizedBox(
-                        width: (constraints.maxWidth - 18) / 2,
-                        child: card,
-                      ),
-                    )
+                    .map((card) => SizedBox(
+                          width: (constraints.maxWidth - 18) / 2,
+                          child: card,
+                        ))
                     .toList(),
               );
             },
@@ -1497,34 +1531,16 @@ class _DashboardPageState extends State<DashboardPage> {
                   color: const Color(0xFFE8F1FB),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  icon,
-                  color: const Color(0xFF1565C0),
-                  size: 22,
-                ),
+                child: Icon(icon, color: const Color(0xFF1565C0), size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF263238),
-                      ),
-                    ),
+                    Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF263238))),
                     const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        height: 1.4,
-                        color: Color(0xFF8A96A3),
-                      ),
-                    ),
+                    Text(subtitle, style: const TextStyle(fontSize: 11, height: 1.4, color: Color(0xFF8A96A3))),
                   ],
                 ),
               ),
@@ -1537,11 +1553,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _settingsStat({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
+  Widget _settingsStat({required IconData icon, required String label, required String value}) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(13),
@@ -1558,22 +1570,9 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF8A96A3),
-                    ),
-                  ),
+                  Text(label, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: Color(0xFF8A96A3))),
                   const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF263238),
-                    ),
-                  ),
+                  Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF263238))),
                 ],
               ),
             ),
@@ -1596,43 +1595,22 @@ class _DashboardPageState extends State<DashboardPage> {
         child: Row(
           children: [
             Icon(
-              team.active
-                  ? Icons.check_circle_rounded
-                  : Icons.remove_circle_outline_rounded,
+              team.active ? Icons.check_circle_rounded : Icons.remove_circle_outline_rounded,
               size: 19,
-              color: team.active
-                  ? const Color(0xFF2E7D32)
-                  : const Color(0xFF9AA5B1),
+              color: team.active ? const Color(0xFF2E7D32) : const Color(0xFF9AA5B1),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                team.name,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF374151),
-                ),
-              ),
+              child: Text(team.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
             ),
+            const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
               decoration: BoxDecoration(
-                color: team.active
-                    ? const Color(0xFFE8F5E9)
-                    : const Color(0xFFF1F3F5),
+                color: team.active ? const Color(0xFFE8F5E9) : const Color(0xFFF1F3F5),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(
-                team.active ? 'Active' : 'Inactive',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: team.active
-                      ? const Color(0xFF2E7D32)
-                      : const Color(0xFF7B8794),
-                ),
-              ),
+              child: Text(team.active ? 'Active' : 'Inactive', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: team.active ? const Color(0xFF2E7D32) : const Color(0xFF7B8794))),
             ),
           ],
         ),
@@ -1640,41 +1618,47 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _settingsInfoRow(
-    IconData icon,
-    String label,
-    String value,
-  ) {
+  Widget _settingsInfoRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: const Color(0xFF6B7C8F)),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 125,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF7B8794),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 430;
+          if (compact) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 18, color: const Color(0xFF6B7C8F)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF7B8794))),
+                      const SizedBox(height: 3),
+                      Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, height: 1.4, color: Color(0xFF374151))),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, size: 18, color: const Color(0xFF6B7C8F)),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 125,
+                child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF7B8794))),
               ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                height: 1.4,
-                color: Color(0xFF374151),
+              Expanded(
+                child: Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, height: 1.4, color: Color(0xFF374151))),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -1683,17 +1667,8 @@ class _DashboardPageState extends State<DashboardPage> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(9),
-      ),
-      child: Text(
-        message,
-        style: const TextStyle(
-          fontSize: 11,
-          color: Color(0xFF7B8794),
-        ),
-      ),
+      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(9)),
+      child: Text(message, style: const TextStyle(fontSize: 11, color: Color(0xFF7B8794))),
     );
   }
 
@@ -1807,10 +1782,11 @@ class _DashboardPageState extends State<DashboardPage> {
                   children: [
                     heading,
                     const SizedBox(height: 16),
-                    Row(
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
                       children: [
                         _buildTopPerformersPeriodFilter(currentMonth, monthOptions),
-                        const SizedBox(width: 10),
                         _buildTopPerformersTeamFilter(currentTeam, teamOptions),
                       ],
                     ),
@@ -2457,7 +2433,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   SizedBox(height: 7),
                   Text(
-                    'View players imported from STUMPS reports and their team relationships.',
+                    'View players, team relationships and individual performance profiles.',
                     style: TextStyle(
                       color: Color(0xFF7B8794),
                       fontSize: 14,
@@ -2641,6 +2617,20 @@ class _DashboardPageState extends State<DashboardPage> {
                 Icons.search_rounded,
                 size: 19,
               ),
+              suffixIcon: playerSearchQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      onPressed: () {
+                        setState(() {
+                          playerSearchQuery = '';
+                        });
+                      },
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                      ),
+                    ),
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(
@@ -3323,6 +3313,18 @@ class _DashboardPageState extends State<DashboardPage> {
             decoration: InputDecoration(
               hintText: 'Search fielders...',
               prefixIcon: const Icon(Icons.search_rounded, size: 19),
+              suffixIcon: fieldingSearchQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      onPressed: () {
+                        setState(() => fieldingSearchQuery = '');
+                      },
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                      ),
+                    ),
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12),
@@ -3943,6 +3945,18 @@ class _DashboardPageState extends State<DashboardPage> {
             decoration: InputDecoration(
               hintText: 'Search bowlers...',
               prefixIcon: const Icon(Icons.search_rounded, size: 19),
+              suffixIcon: bowlingSearchQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      onPressed: () {
+                        setState(() => bowlingSearchQuery = '');
+                      },
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                      ),
+                    ),
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12),
@@ -4443,6 +4457,20 @@ class _DashboardPageState extends State<DashboardPage> {
                 Icons.search_rounded,
                 size: 19,
               ),
+              suffixIcon: battingSearchQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      onPressed: () {
+                        setState(() {
+                          battingSearchQuery = '';
+                        });
+                      },
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                      ),
+                    ),
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(
@@ -5634,6 +5662,12 @@ class _DashboardPageState extends State<DashboardPage> {
             alignment: WrapAlignment.end,
             children: [
               _matchChip(
+                match.completed
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.timelapse_rounded,
+                match.completed ? 'Completed' : 'In Progress',
+              ),
+              _matchChip(
                 Icons.calendar_today_rounded,
                 dateText,
               ),
@@ -6095,7 +6129,20 @@ class _DashboardPageState extends State<DashboardPage> {
                 ],
               );
               if (compact) {
-                return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [title, const SizedBox(height: 18), SingleChildScrollView(scrollDirection: Axis.horizontal, child: controls)]);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    title,
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(child: _buildMonthlyMonthFilter(monthLabels)),
+                        const SizedBox(width: 10),
+                        Expanded(child: _buildMonthlyTeamFilter()),
+                      ],
+                    ),
+                  ],
+                );
               }
               return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: title), const SizedBox(width: 20), controls]);
             },
@@ -6411,98 +6458,440 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildDashboard() {
-    final loadingAnalytics = isLoadingTeams || isLoadingBatting || isLoadingBowling || isLoadingFielding;
-    final activeTeamIds = firestoreTeams.where((team) => team.active).map((team) => team.id).toSet();
+    final loadingAnalytics =
+        isLoadingTeams ||
+        isLoadingBatting ||
+        isLoadingBowling ||
+        isLoadingFielding;
+
+    final activeTeamIds = firestoreTeams
+        .where((team) => team.active)
+        .map((team) => team.id)
+        .toSet();
+
     final selectedTeamId = _selectedActiveTeamId();
 
     final dashboardMatches = firestoreMatches.where((match) {
-      final involvesActiveTeam = activeTeamIds.contains(match.team1Id) || activeTeamIds.contains(match.team2Id);
-      if (!involvesActiveTeam) return false;
-      if (selectedTeamId == null) return true;
-      return match.team1Id == selectedTeamId || match.team2Id == selectedTeamId;
+      final involvesActiveTeam =
+          activeTeamIds.contains(match.team1Id) ||
+          activeTeamIds.contains(match.team2Id);
+
+      if (!involvesActiveTeam) {
+        return false;
+      }
+
+      if (selectedTeamId == null) {
+        return true;
+      }
+
+      return match.team1Id == selectedTeamId ||
+          match.team2Id == selectedTeamId;
     }).toList();
 
-    final completedMatches = dashboardMatches.where((match) => match.completed).length;
+    dashboardMatches.sort(
+      (a, b) => b.matchDate.compareTo(a.matchDate),
+    );
+
+    final completedMatches =
+        dashboardMatches.where((match) => match.completed).length;
+
     final battingRows = _battingRows();
     final bowlingRows = _bowlingRows();
     final fieldingRows = _fieldingRows();
 
     final dashboardPlayers = <String>{};
+
     for (final player in firestorePlayers) {
-      final teamIds = (playerTeamIds[player.id] ?? <String>[]).toSet();
+      final teamIds =
+          (playerTeamIds[player.id] ?? <String>[]).toSet();
+
       final belongsToSelection = selectedTeamId == null
           ? teamIds.any(activeTeamIds.contains)
           : teamIds.contains(selectedTeamId);
-      if (belongsToSelection) dashboardPlayers.add(player.id);
+
+      if (belongsToSelection) {
+        dashboardPlayers.add(player.id);
+      }
     }
 
-    final totalRuns = battingRows.fold<int>(0, (sum, row) => sum + row.runs);
-    final totalWickets = bowlingRows.fold<int>(0, (sum, row) => sum + row.wickets);
+    final totalRuns = battingRows.fold<int>(
+      0,
+      (sum, row) => sum + row.runs,
+    );
+
+    final totalWickets = bowlingRows.fold<int>(
+      0,
+      (sum, row) => sum + row.wickets,
+    );
+
     final topBatters = battingRows.take(3).toList();
-    final topBatting = topBatters.isNotEmpty ? topBatters.first : null;
-    final topBowling = bowlingRows.isNotEmpty ? bowlingRows.first : null;
-    final topFielding = fieldingRows.isNotEmpty ? fieldingRows.first : null;
+    final topBatting =
+        battingRows.isNotEmpty ? battingRows.first : null;
+    final topBowling =
+        bowlingRows.isNotEmpty ? bowlingRows.first : null;
+    final topFielding =
+        fieldingRows.isNotEmpty ? fieldingRows.first : null;
+
+    final selectedTeamLabel =
+        selectedTeam == 'All Teams' ? 'All Teams' : selectedTeam;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(30),
+      padding: const EdgeInsets.fromLTRB(30, 24, 30, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 650;
-              final heading = const Column(
+
+              final heading = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Performance Overview', style: TextStyle(fontSize: 27, fontWeight: FontWeight.w700, color: Color(0xFF17202A))),
-                  SizedBox(height: 7),
-                  Text('Track batting, bowling and fielding performance across all matches.', style: TextStyle(color: Color(0xFF7B8794), fontSize: 14)),
+                  const Text(
+                    'Performance Overview',
+                    style: TextStyle(
+                      fontSize: 27,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF17202A),
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    selectedTeamLabel == 'All Teams'
+                        ? 'Track batting, bowling and fielding performance across all active teams.'
+                        : 'Performance overview for $selectedTeamLabel.',
+                    style: const TextStyle(
+                      color: Color(0xFF7B8794),
+                      fontSize: 14,
+                    ),
+                  ),
                 ],
               );
+
               if (compact) {
-                return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [heading, const SizedBox(height: 16), _buildTeamSelector()]);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    heading,
+                    const SizedBox(height: 16),
+                    _buildTeamSelector(),
+                  ],
+                );
               }
-              return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: heading), const SizedBox(width: 20), _buildTeamSelector()]);
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: heading),
+                  const SizedBox(width: 20),
+                  _buildTeamSelector(),
+                ],
+              );
             },
           ),
-          const SizedBox(height: 26),
-          if (loadingAnalytics) const Padding(padding: EdgeInsets.only(bottom: 22), child: LinearProgressIndicator(minHeight: 2)),
+
+          const SizedBox(height: 20),
+
+          if (loadingAnalytics)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 18),
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
+
           LayoutBuilder(
             builder: (context, constraints) {
               final cards = [
-                _statCard(title: 'Matches', value: '$completedMatches', subtitle: 'Completed matches', icon: Icons.sports_cricket_rounded),
-                _statCard(title: 'Players', value: '${dashboardPlayers.length}', subtitle: 'Active team players', icon: Icons.people_alt_rounded),
-                _statCard(title: 'Runs', value: '$totalRuns', subtitle: 'Total runs scored', icon: Icons.sports_score_rounded),
-                _statCard(title: 'Wickets', value: '$totalWickets', subtitle: 'Total wickets', icon: Icons.sports_baseball_rounded),
+                _statCard(
+                  title: 'Matches',
+                  value: '$completedMatches',
+                  subtitle: 'Completed matches',
+                  icon: Icons.sports_cricket_rounded,
+                ),
+                _statCard(
+                  title: 'Players',
+                  value: '${dashboardPlayers.length}',
+                  subtitle: 'Players in selection',
+                  icon: Icons.people_alt_rounded,
+                ),
+                _statCard(
+                  title: 'Runs',
+                  value: '$totalRuns',
+                  subtitle: 'Runs scored',
+                  icon: Icons.sports_score_rounded,
+                ),
+                _statCard(
+                  title: 'Wickets',
+                  value: '$totalWickets',
+                  subtitle: 'Wickets taken',
+                  icon: Icons.sports_baseball_rounded,
+                ),
               ];
+
               if (constraints.maxWidth < 700) {
-                return Column(children: [for (var i = 0; i < cards.length; i++) ...[cards[i], if (i < cards.length - 1) const SizedBox(height: 16)]]);
+                return Column(
+                  children: [
+                    for (var i = 0; i < cards.length; i++) ...[
+                      cards[i],
+                      if (i < cards.length - 1)
+                        const SizedBox(height: 12),
+                    ],
+                  ],
+                );
               }
-              final cardWidth = (constraints.maxWidth - 48) / 4;
-              return Row(children: [for (var i = 0; i < cards.length; i++) ...[SizedBox(width: cardWidth, child: cards[i]), if (i < cards.length - 1) const SizedBox(width: 16)]]);
+
+              final cardWidth =
+                  (constraints.maxWidth - 48) / 4;
+
+              return Row(
+                children: [
+                  for (var i = 0; i < cards.length; i++) ...[
+                    SizedBox(
+                      width: cardWidth,
+                      child: cards[i],
+                    ),
+                    if (i < cards.length - 1)
+                      const SizedBox(width: 16),
+                  ],
+                ],
+              );
             },
           ),
-          const SizedBox(height: 28),
+
+          const SizedBox(height: 24),
+
           LayoutBuilder(
             builder: (context, constraints) {
               final wide = constraints.maxWidth >= 1000;
+
               if (wide) {
-                return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Expanded(flex: 3, child: _buildTopBattersCard(topBatters)),
-                  if (isAdmin) ...[const SizedBox(width: 20), Expanded(flex: 2, child: _buildImportCard())],
-                ]);
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: _buildTopBattersCard(
+                        topBatters,
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      flex: 2,
+                      child: _buildRecentMatchesCard(
+                        dashboardMatches.take(5).toList(),
+                      ),
+                    ),
+                  ],
+                );
               }
-              return Column(children: [
-                _buildTopBattersCard(topBatters),
-                if (isAdmin) ...[const SizedBox(height: 20), _buildImportCard()],
-              ]);
+
+              return Column(
+                children: [
+                  _buildTopBattersCard(topBatters),
+                  const SizedBox(height: 20),
+                  _buildRecentMatchesCard(
+                    dashboardMatches.take(5).toList(),
+                  ),
+                ],
+              );
             },
           ),
+
           const SizedBox(height: 24),
-          _buildTopPerformersOverview(topBatting: topBatting, topBowling: topBowling, topFielding: topFielding),
+
+          if (isAdmin) ...[
+            _buildImportCard(
+              matchCount: completedMatches,
+              latestMatch: dashboardMatches.isNotEmpty
+                  ? dashboardMatches.first
+                  : null,
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          _buildTopPerformersOverview(
+            topBatting: topBatting,
+            topBowling: topBowling,
+            topFielding: topFielding,
+          ),
         ],
       ),
     );
+  }
+
+  Widget _buildRecentMatchesCard(
+    List<MatchModel> matches,
+  ) {
+    return _whiteCard(
+      title: 'Recent Matches',
+      trailing: TextButton(
+        onPressed: () {
+          final index = navigationItems.indexWhere(
+            (item) => item.title == 'Matches',
+          );
+
+          if (index >= 0) {
+            setState(() {
+              selectedIndex = index;
+            });
+          }
+        },
+        child: const Text(
+          'View All',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1565C0),
+          ),
+        ),
+      ),
+      child: matches.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.symmetric(vertical: 28),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.sports_cricket_rounded,
+                      size: 38,
+                      color: Color(0xFFB0BAC5),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      'No matches available',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF6F7C89),
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Imported completed matches will appear here.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF9AA5B1),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : Column(
+              children: [
+                for (var i = 0; i < matches.length; i++) ...[
+                  _dashboardMatchRow(matches[i]),
+                  if (i < matches.length - 1) _divider(),
+                ],
+              ],
+            ),
+    );
+  }
+
+  Widget _dashboardMatchRow(MatchModel match) {
+    final team1 =
+        matchTeamLookup[match.team1Id]?.name ?? match.team1Id;
+    final team2 =
+        matchTeamLookup[match.team2Id]?.name ?? match.team2Id;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () {
+        _openMatchDetails(match);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F1FB),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.sports_cricket_rounded,
+                size: 21,
+                color: Color(0xFF1565C0),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$team1 vs $team2',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF263238),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_formatDashboardDate(match.matchDate)} • ${match.format}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF8A96A3),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              constraints: const BoxConstraints(maxWidth: 110),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 6,
+              ),
+              decoration: BoxDecoration(
+                color: match.completed
+                    ? const Color(0xFFE8F5E9)
+                    : const Color(0xFFFFF8E1),
+                borderRadius: BorderRadius.circular(7),
+              ),
+              child: Text(
+                match.completed ? 'Completed' : 'In Progress',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  color: match.completed
+                      ? const Color(0xFF2E7D32)
+                      : const Color(0xFF9A6700),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDashboardDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    return '${date.day.toString().padLeft(2, '0')} '
+        '${months[date.month - 1]} ${date.year}';
   }
 
   Widget _buildTeamSelector() {
@@ -6712,53 +7101,103 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildImportCard() {
+  Widget _buildImportCard({
+    required int matchCount,
+    required MatchModel? latestMatch,
+  }) {
+    final hasMatches = matchCount > 0;
+
     return _whiteCard(
       title: 'STUMPS Match Data',
-      child: Column(
-        children: [
-          const SizedBox(height: 5),
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F1FB),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(
-              Icons.picture_as_pdf_rounded,
-              size: 34,
-              color: Color(0xFF1565C0),
-            ),
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 9,
+          vertical: 6,
+        ),
+        decoration: BoxDecoration(
+          color: hasMatches
+              ? const Color(0xFFE8F5E9)
+              : const Color(0xFFF1F3F5),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          hasMatches
+              ? '$matchCount completed'
+              : 'No matches',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: hasMatches
+                ? const Color(0xFF2E7D32)
+                : const Color(0xFF7B8794),
           ),
-          const SizedBox(height: 17),
-          const Text(
-            'No matches imported',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              color: Color(0xFF263238),
-            ),
-          ),
-          const SizedBox(height: 7),
-          const Text(
-            'Import a completed STUMPS match report to update player performance.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF8995A3),
-              fontSize: 12,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 18),
-          ElevatedButton.icon(
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 520;
+
+          final info = Row(
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F1FB),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(
+                  Icons.picture_as_pdf_rounded,
+                  size: 29,
+                  color: Color(0xFF1565C0),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasMatches
+                          ? 'Match data is up to date'
+                          : 'No matches imported yet',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: Color(0xFF263238),
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      hasMatches
+                          ? latestMatch == null
+                              ? 'Import another completed STUMPS report to update analytics.'
+                              : 'Latest: ${latestMatch.stumpsMatchId.isNotEmpty ? latestMatch.stumpsMatchId : _formatDashboardDate(latestMatch.matchDate)}'
+                          : 'Import a completed STUMPS match report to update player performance.',
+                      style: const TextStyle(
+                        color: Color(0xFF8995A3),
+                        fontSize: 11,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+
+          final button = ElevatedButton.icon(
             onPressed: () {
-              setState(() {
-                selectedIndex = navigationItems.indexWhere((item) => item.title == 'STUMPS Import');
-                if (selectedIndex < 0) {
-                  selectedIndex = 0;
-                }
-              });
+              final index = navigationItems.indexWhere(
+                (item) => item.title == 'STUMPS Import',
+              );
+
+              if (index >= 0) {
+                setState(() {
+                  selectedIndex = index;
+                });
+              }
             },
             icon: const Icon(
               Icons.upload_file_rounded,
@@ -6776,13 +7215,34 @@ class _DashboardPageState extends State<DashboardPage> {
                 borderRadius: BorderRadius.circular(9),
               ),
             ),
-          ),
-        ],
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                info,
+                const SizedBox(height: 16),
+                button,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: info),
+              const SizedBox(width: 18),
+              button,
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildTopPerformersOverview({
+  Widget _buildTopPerformersOverview(
+{
     required _BattingRowData? topBatting,
     required _BowlingRowData? topBowling,
     required _FieldingRowData? topFielding,
