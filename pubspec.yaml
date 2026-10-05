@@ -1,0 +1,47 @@
+name: team_performance
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  firebase_core: ^4.15.0
+  flutter_web_plugins:
+    sdk: flutter
+  cloud_firestore: ^6.10.0
+  syncfusion_flutter_pdf: ^34.2.9
+  file_picker: ^13.1.0
+  firebase_auth: ^6.7.0
+  firebase_storage: ^13.6.0
+  cloudinary_url_gen: ^1.8.0
+  http: ^1.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/team_performance_logo.png
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/team_performance_logo.png"
+
+  web:
+    generate: true
+    image_path: "assets/images/team_performance_logo.png"
+    background_color: "#071A33"
+    theme_color: "#071A33"

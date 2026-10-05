@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "544816997592",
+    "project_id": "team-performance-2026",
+    "storage_bucket": "team-performance-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:544816997592:android:9744517fd6bad63622a3ad",
+        "android_client_info": {
+          "package_name": "com.example.team_performance"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhlo00xTBZDv3ktKWFSVnHpuuQ1oFvwnQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
